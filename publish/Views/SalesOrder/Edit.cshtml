@@ -1,0 +1,436 @@
+﻿@model Project_SalesOrder.Models.Order
+@{
+    Layout = null;
+}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Sales Order</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
+    <link href="~/Content/Site.css" rel="stylesheet" />
+</head>
+
+@Html.Partial("~/Views/Partials/NotificationsDialog.cshtml")
+
+<body>
+    <div class="container">
+        <div class="header">EDIT - SALES ORDER</div>
+        <form method="post" action="@Url.Action("Edit", "SalesOrder")">
+            <!-- Sales Order Information -->
+            <div class="section">
+                <h3 class="sub-header">Sales Order Information <i class="fas fa-chevron-up toggle-icon"></i></h3>
+                <div class="section-order">
+                    <div class="form-group">
+                        <input type="hidden" name="SO_ORDER_ID" value="@Model.SO_ORDER_ID" />
+                        <label for="ORDER_NO">Sales Order Number <span style="color: red;">*</span></label>
+                        <input type="text" id="ORDER_NO" name="ORDER_NO" value="@Model.ORDER_NO" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="COM_CUSTOMER_ID">Customer <span style="color: red;">*</span></label>
+                        <select id="COM_CUSTOMER_ID" name="COM_CUSTOMER_ID">
+                            @foreach (var customer in ViewBag.Customers as List<Project_SalesOrder.Models.Customer>)
+                            {
+                                <option value="@customer.COM_CUSTOMER_ID" @(customer.COM_CUSTOMER_ID == Model.COM_CUSTOMER_ID ? "selected" : "")>
+                                    @customer.CUSTOMER_NAME
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="ORDER_DATE">Order Date <span style="color: red;">*</span></label>
+                        <input type="date" id="ORDER_DATE" name="ORDER_DATE" value="@Model.ORDER_DATE.ToString("yyyy-MM-dd")">
+                    </div>
+                    <div class="form-group">
+                        <label for="ADDRESS">Address</label>
+                        <textarea id="ADDRESS" name="ADDRESS" rows="4" style="flex-basis: 40%;">@Model.ADDRESS</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail Item Information -->
+            <div class="section">
+                <h3 class="sub-header">Detail Item Information <i class="fas fa-chevron-up toggle-icon"></i></h3>
+                <div class="section-content">
+                    <button class="btn btn-add">Add Item</button>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Action</th>
+                                <th>Item Name</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Items != null && Model.Items.Any())
+                            {
+                                int index = 0;
+                                foreach (var item in Model.Items)
+                                {
+                                    <tr data-item-id="@item.SO_ITEM_ID">
+                                        <td>@(index + 1)</td>
+                                        <td style="text-align: center;">
+                                            <a href="javascript:void(0);" class="btn-edit"><i class="fas fa-edit" style="font-size: 24px; color: #333333; "></i></a>&nbsp;
+                                            <a href="javascript:void(0);" class="btn-delete"><i class="fas fa-trash" style="font-size: 24px; color: #333333;"></i></a>
+                                        </td>
+                                        <td>
+                                            <input type="hidden" name="Items[@index].SO_ITEM_ID" value="@item.SO_ITEM_ID" />
+                                            <input type="text" name="Items[@index].ITEM_NAME" value="@item.ITEM_NAME" readonly>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="Items[@index].QUANTITY" value="@item.QUANTITY" readonly>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="Items[@index].PRICE" value="@item.PRICE" step="0.01" readonly />
+                                        </td>
+                                        <td class="total-cell">@((item.QUANTITY * item.PRICE).ToString("N2", new System.Globalization.CultureInfo("id-ID")))</td>
+                                    </tr>
+                                    index++;
+                                }
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr style="font-weight: bold; border: 2px solid #706e6e; background: #ffffff;">
+                                <td colspan="3"></td>
+                                <td>Total Item: <span id="totalItems">@((Model.Items?.Sum(i => i.QUANTITY) ?? 0).ToString())</span></td>
+                                <td colspan="2">
+                                    Total Amount: <span id="totalAmount">
+                                        @((Model.Items != null
+                                           ? Model.Items.Sum(i => i.QUANTITY * i.PRICE)
+                                               .ToString("N2", new System.Globalization.CultureInfo("id-ID"))
+                                           : "0,00"))
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr style="font-weight: bold; background: #ededed">
+                                <td colspan="6" style="text-align: center;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div id="pagination" style="display: flex; gap: 5px;"></div>
+                                        <div id="pagination-info" style="font-size: 14px; color: #666;">1 - 10 of 28 items</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-section" style="text-align: center;">
+                <button class="btn btn-primary" type="submit">Save</button>
+                <button class="btn btn-danger" type="button" onclick="window.location.href='@Url.Action("Index", "SalesOrder")'">Close</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script src="~/Scripts/app.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const tableBody = document.querySelector("table tbody");
+            const addItemButton = document.querySelector(".btn.btn-add");
+            const totalItemsElement = document.getElementById("totalItems");
+            const totalAmountElement = document.getElementById("totalAmount");
+
+            function addNewRow() {
+                const rowCount = tableBody.rows.length;
+                const newRow = document.createElement("tr");
+
+                newRow.innerHTML = `
+                    <td>${rowCount + 1}</td>
+                    <td style="text-align: center;">
+                        <a href="#" class="btn-save"><i class="fas fa-save" style="color: #333333; font-size: 24px;"></i></a>
+                    </td>
+                    <td>
+                        <input type="hidden" name="Items[${rowCount}].SO_ITEM_ID" value="0" />
+                        <input type="text" name="Items[${rowCount}].ITEM_NAME" placeholder="Enter item name" required>
+                    </td>
+                    <td>
+                        <input type="number" name="Items[${rowCount}].QUANTITY" min="1" placeholder="Enter quantity" required>
+                    </td>
+                    <td>
+                        <input type="number" name="Items[${rowCount}].PRICE" placeholder="Enter price" required>
+                    </td>
+                    <td class="total-cell">0.00</td>
+                `;
+
+                tableBody.appendChild(newRow);
+
+                addInputListeners(newRow);
+                addSaveListener(newRow);
+            }
+
+            function saveRow(row) {
+
+                const inputs = row.querySelectorAll("input");
+                inputs.forEach(input => input.readOnly = true);
+
+                updateRowTotal(row);
+                updateSummary();
+            }
+
+            document.querySelectorAll(".btn-save").forEach(saveButton => {
+                saveButton.addEventListener("click", function () {
+                    const row = this.closest("tr");
+                    saveRow(row);
+                });
+            });
+
+            function updateRowTotal(row) {
+                const qtyInput = row.querySelector("input[name$='.QUANTITY']");
+                const priceInput = row.querySelector("input[name$='.PRICE']");
+                const totalCell = row.querySelector(".total-cell");
+
+                if (!qtyInput || !priceInput || !totalCell) {
+                    console.error("Missing inputs for row:", row);
+                    return;
+                }
+
+                const qty = parseFloat(qtyInput.value.replace(/\./g, '').replace(/,/g, '.')) || 0;
+                const price = parseFloat(priceInput.value.replace(/\./g, '').replace(/,/g, '.')) || 0;
+                const total = qty * price;
+
+                totalCell.textContent = total.toLocaleString("id-ID", { minimumFractionDigits: 2 });
+            }
+
+            function updateSummary() {
+                const totalItemsElement = document.getElementById("totalItems");
+                const totalAmountElement = document.getElementById("totalAmount");
+
+                if (!totalItemsElement || !totalAmountElement) {
+                    console.warn("Summary elements not found in the DOM.");
+                    return;
+                }
+
+                const rows = document.querySelectorAll("table tbody tr");
+                let totalItems = 0;
+                let totalAmount = 0;
+
+                rows.forEach(row => {
+                    const qty = parseFloat(row.querySelector("input[name$='.QUANTITY']")?.value.replace(/\./g, '').replace(/,/g, '.')) || 0;
+                    const total = parseFloat(row.querySelector(".total-cell")?.textContent.replace(/\./g, '').replace(/,/g, '.')) || 0;
+
+                    totalItems += qty;
+                    totalAmount += total;
+                });
+
+                totalItemsElement.textContent = totalItems.toString();
+                totalAmountElement.textContent = totalAmount.toLocaleString("id-ID", { minimumFractionDigits: 2 });
+            }
+            
+            function addSaveListener(row) {
+                const saveButton = row.querySelector(".btn-save");
+                saveButton.addEventListener("click", function (e) {
+                    e.preventDefault();
+
+                    const itemNameInput = row.querySelector("input[name$='.ITEM_NAME']");
+                    const qtyInput = row.querySelector("input[name$='.QUANTITY']");
+                    const priceInput = row.querySelector("input[name$='.PRICE']");
+                    const totalCell = row.querySelector(".total-cell");
+
+                    if (!itemNameInput.value.trim()) {
+                        alert("Item Name is required.");
+                        itemNameInput.focus();
+                        return;
+                    }
+                    if (!qtyInput.value || parseFloat(qtyInput.value) <= 0) {
+                        alert("Quantity is required and must be greater than 0.");
+                        qtyInput.focus();
+                        return;
+                    }
+                    if (!priceInput.value || parseFloat(priceInput.value) <= 0) {
+                        alert("Price is required and must be greater than 0.");
+                        priceInput.focus();
+                        return;
+                    }
+
+                    const qty = parseFloat(qtyInput.value);
+                    const price = parseFloat(priceInput.value);
+                    const total = qty * price;
+
+                    totalCell.textContent = total.toFixed(2);
+
+                    addNewRow();
+                    updateSummary();
+                });
+            }
+
+            function addEditListener(row) {
+                const editButton = row.querySelector(".btn-edit");
+                const deleteButton = row.querySelector(".btn-delete");
+                const inputs = row.querySelectorAll("input");
+
+                editButton.addEventListener("click", function () {
+                    if (editButton.classList.contains("editing")) {
+                        inputs.forEach(input => input.readOnly = true);
+
+                        updateRowTotal(row);
+
+                        editButton.innerHTML = '<i class="fas fa-edit" style="font-size: 24px; color: #333333;"></i>';
+                        deleteButton.innerHTML = '<i class="fas fa-trash" style="font-size: 24px; color: #333333;"></i>';
+                        editButton.classList.remove("editing");
+                        deleteButton.classList.remove("cancel");
+
+                        updateSummary();
+                    } else {
+                        inputs.forEach(input => input.readOnly = false);
+
+                        row.dataset.originalValues = JSON.stringify({
+                            itemName: inputs[1].value,
+                            quantity: inputs[2].value,
+                            price: inputs[3].value
+                        });
+                        updateRowTotal(row);
+
+                        editButton.innerHTML = '<i class="fas fa-save" style="font-size: 24px; color: #333333;"></i>';
+                        deleteButton.innerHTML = '<i class="fas fa-times" style="font-size: 24px; color: #dc3545;"></i>';
+                        editButton.classList.add("editing");
+                        deleteButton.classList.add("cancel");
+                    }
+                });
+            }
+
+            function addDeleteListener(row) {
+                const deleteButton = row.querySelector(".btn-delete");
+
+                deleteButton.addEventListener("click", function () {
+                    if (deleteButton.classList.contains("cancel")) {
+                        const originalValues = JSON.parse(row.dataset.originalValues || '{}');
+                        const inputs = row.querySelectorAll("input");
+
+                        if (originalValues) {
+                            inputs[1].value = originalValues.itemName || ''; // Nama Item
+                            inputs[2].value = originalValues.quantity || ''; // Qty
+                            inputs[3].value = originalValues.price || ''; // Price
+                        }
+
+                        const editButton = row.querySelector(".btn-edit");
+                        editButton.innerHTML = '<i class="fas fa-edit" style="font-size: 24px; color: #333333;"></i>';
+                        deleteButton.innerHTML = '<i class="fas fa-trash" style="font-size: 24px; color: #333333;"></i>';
+                        editButton.classList.remove("editing");
+                        deleteButton.classList.remove("cancel");
+                    } else {
+                        row.remove(); 
+                        updateSummary();
+                    }
+                });
+            }
+
+            function addInputListeners(row) {
+                const qtyInput = row.querySelector("input[name$='.QUANTITY']");
+                const priceInput = row.querySelector("input[name$='.PRICE']");
+
+                [qtyInput, priceInput].forEach(input => {
+                    if (input) {
+                        input.addEventListener("input", function () {
+                            updateRowTotal(row);
+                            updateSummary();
+                        });
+                    } else {
+                        console.error("Input not found in row:", row);
+                    }
+                });
+            }
+
+            function enableEditing(row) {
+                const inputs = row.querySelectorAll("input");
+                inputs.forEach(input => input.readOnly = false);
+            }
+
+            addItemButton.addEventListener("click", function () {
+                addNewRow();
+            });
+
+            tableBody.querySelectorAll("tr").forEach(row => {
+                addEditListener(row);
+            });
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const deleteModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+            const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+            let rowToDelete = null;
+
+            function updateSummary() {
+                const totalItemsElement = document.getElementById("totalItems");
+                const totalAmountElement = document.getElementById("totalAmount");
+
+                if (!totalItemsElement || !totalAmountElement) {
+                    console.warn("Summary elements not found in the DOM.");
+                    return;
+                }
+
+                const rows = document.querySelectorAll("table tbody tr");
+                let totalItems = 0;
+                let totalAmount = 0;
+
+                rows.forEach(row => {
+                    const qty = parseFloat(row.querySelector("input[name$='.QUANTITY']")?.value.replace(/\./g, '').replace(/,/g, '.')) || 0;
+                    const total = parseFloat(row.querySelector(".total-cell")?.textContent.replace(/\./g, '').replace(/,/g, '.')) || 0;
+
+                    totalItems += qty;
+                    totalAmount += total;
+                });
+
+                totalItemsElement.textContent = totalItems.toString();
+                totalAmountElement.textContent = totalAmount.toLocaleString("id-ID", { minimumFractionDigits: 2 });
+            }
+
+            document.querySelectorAll(".btn-delete").forEach(button => {
+                button.addEventListener("click", function () {
+                    if (button.classList.contains("cancel")) {
+                        const row = button.closest("tr");
+                        const originalValues = JSON.parse(row.dataset.originalValues || '{}');
+                        const inputs = row.querySelectorAll("input");
+
+                        if (originalValues) {
+                            inputs[1].value = originalValues.itemName || '';
+                            inputs[2].value = originalValues.quantity || ''; 
+                            inputs[3].value = originalValues.price || ''; 
+                        }
+
+                        const editButton = row.querySelector(".btn-edit");
+                        editButton.innerHTML = '<i class="fas fa-edit" style="font-size: 24px; color: #333333;"></i>';
+                        button.innerHTML = '<i class="fas fa-trash" style="font-size: 24px; color: #333333;"></i>';
+                        editButton.classList.remove("editing");
+                        button.classList.remove("cancel");
+                    } else {
+                        rowToDelete = this.closest("tr");
+                        deleteModal.show();
+                    }
+                });
+            });
+
+            document.querySelector(".btn-confirm-yes").addEventListener("click", function () {
+                if (rowToDelete) {
+                    const itemId = rowToDelete.getAttribute("data-item-id");
+
+                    fetch('/SalesOrder/DeleteItem', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ itemId: itemId })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                rowToDelete.remove();
+                                rowToDelete = null;
+                                deleteModal.hide(); 
+                                successModal.show(); 
+                                updateSummary(); 
+                            } else {
+                                alert(data.message);
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
