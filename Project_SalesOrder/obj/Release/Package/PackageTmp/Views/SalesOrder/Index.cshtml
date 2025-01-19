@@ -1,0 +1,148 @@
+﻿@model IEnumerable<Project_SalesOrder.Models.Order>
+@{
+    ViewBag.Title = "Index";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Order</title>
+    <link href="~/Content/Site.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
+</head>
+
+@Html.Partial("~/Views/Partials/NotificationsDialog.cshtml")
+
+<!-- Success Message -->
+@if (TempData["Success"] != null && (bool)TempData["Success"])
+{
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        @if (TempData["Success"] != null && (bool)TempData["Success"])
+        {
+            <text>
+                const successModal = new bootstrap.Modal(document.getElementById("successSave"));
+                successModal.show();
+
+                setTimeout(() => successModal.hide(), 2000);
+            </text>
+        }
+    });
+    </script>
+}
+
+<body>
+    <div class="container" style="padding-bottom: 15px;">
+        <div class="header">SALES ORDER</div>
+        <div class="form-container" style="display: flex; justify-content: space-around;">
+            <form method="get" action="@Url.Action("Index", "SalesOrder")">
+                <div>
+                    <label>Keywords</label><br>
+                    <input type="text" name="keywords" placeholder="Input Here" value="@ViewBag.Keywords">
+                </div>
+                <div>
+                    <label>Order Date</label><br>
+                    <input type="date" name="orderDate" value="@ViewBag.OrderDate">
+                </div>
+                <div style="align-content: end;">
+                    <button type="submit">Search</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-container">
+            <button class="btn" onclick="window.location.href='@Url.Action("Create", "SalesOrder")'" style="background-color: #C2185B; color: #fff;">Add New Data</button>
+            <button class="btn" style="background-color: #2E7D32; color: #fff;" onclick="window.location.href='@Url.Action("ExportToExcel", "SalesOrder")'">
+                <i class="fas fa-file-excel"></i> Export To Excel
+            </button>
+            <table>
+                <thead>
+                    <tr style="text-align: center; background-color: #003366; color: white;">
+                        <th style="width: 40px;">No</th>
+                        <th style="width: 120px;">Action</th>
+                        <th>Sales Order</th>
+                        <th>Order Date</th>
+                        <th>Customer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        int index = 1;
+                        foreach (var order in Model)
+                        {
+                            <tr>
+                                <td>@index</td>
+                                <td>
+                                    <a href="@Url.Action("Edit", "SalesOrder", new { id = order.SO_ORDER_ID })"><i class="fas fa-edit" style="font-size: 24px; color: #333;"></i></a>&nbsp;
+                                    <a href="#" class="delete-btn" data-url="@Url.Action("Delete", "SalesOrder", new { id = order.SO_ORDER_ID })"><i class="fas fa-trash" style="font-size: 24px; color: #333;"></i></a>
+                                </td>
+                                <td>@order.ORDER_NO</td>
+                                <td>@order.ORDER_DATE.ToString("dd/MM/yyyy")</td>
+                                <td>@order.Customer.CUSTOMER_NAME</td>
+                            </tr>
+                            index++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" style="text-align: center;">No data available</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr style="font-weight: bold;">
+                        <td colspan="5" style="text-align: center;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div id="pagination" style="display: flex; gap: 5px;"></div>
+                                <div id="pagination-info" style="font-size: 14px; color: #666;">1 - 10 of 28 items</div>
+                            </div>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script src="~/Scripts/app.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const deleteButtons = document.querySelectorAll(".delete-btn");
+            const confirmModal = new bootstrap.Modal(document.getElementById("confirmModal"));
+            const successModal = new bootstrap.Modal(document.getElementById("successModal"));
+            let deleteUrl = "";
+
+            deleteButtons.forEach(button => {
+                button.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    deleteUrl = this.getAttribute("data-url");
+                    confirmModal.show();
+                });
+            });
+
+            document.querySelector(".btn-confirm-yes").addEventListener("click", function () {
+                confirmModal.hide();
+                fetch(deleteUrl, { method: "POST" })
+                    .then(response => {
+                        if (response.ok) {
+                            successModal.show();
+                            setTimeout(() => location.reload(), 2000);
+                        } else {
+                            alert("Error deleting item.");
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Error:", err);
+                        alert("Error deleting item.");
+                    });
+            });
+        });
+    </script>
+</body>
+</html>

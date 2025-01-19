@@ -1,0 +1,214 @@
+﻿@model Project_SalesOrder.Models.Order
+@{
+    Layout = null;
+}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Sales Order</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="~/Content/Site.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="container">
+        <div class="header">ADD NEW - SALES ORDER</div>
+        <form method="post" action="@Url.Action("Create", "SalesOrder")">
+            <!-- Sales Order Information -->
+            <div class="section">
+                <h3 class="sub-header">Sales Order Information <i class="fas fa-chevron-up toggle-icon"></i></h3>
+                <div class="section-order">
+                    <div class="form-group">
+                        <label for="ORDER_NO">Sales Order Number <span style="color: red;">*</span></label>
+                        <input type="text" id="ORDER_NO" name="ORDER_NO" value="@Model.ORDER_NO" required>
+                        @Html.ValidationMessage("ORDER_NO", new { @class = "text-danger" })
+                    </div>
+                    <div class="form-group">
+                        <label for="COM_CUSTOMER_ID">Customer <span style="color: red;">*</span></label>
+                        <select id="COM_CUSTOMER_ID" name="COM_CUSTOMER_ID" required>
+                            <option value="" selected disabled>Select one</option>
+                            @foreach (var customer in ViewBag.Customers as List<Project_SalesOrder.Models.Customer>)
+                            {
+                                <option value="@customer.COM_CUSTOMER_ID" @(customer.COM_CUSTOMER_ID == Model.COM_CUSTOMER_ID ? "selected" : "")>
+                                    @customer.CUSTOMER_NAME
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="ORDER_DATE">Order Date <span style="color: red;">*</span></label>
+                        <input type="date" id="ORDER_DATE" name="ORDER_DATE" value="@Model.ORDER_DATE.ToString("yyyy-MM-dd")" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ADDRESS">Address</label>
+                        <textarea id="ADDRESS" name="ADDRESS" rows="4" style="flex-basis: 40%;">@Model.ADDRESS</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail Item Information -->
+            <div class="section">
+                <h3 class="sub-header">Detail Item Information <i class="fas fa-chevron-up toggle-icon"></i></h3>
+                <div class="section-content">
+                    <button type="button" class="btn btn-add">Add Item</button>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Action</th>
+                                <th>Item Name</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                        <tfoot>
+                            <tr style="font-weight: bold; border: 2px solid #706e6e; background: #ffffff;">
+                                <td colspan="3"></td>
+                                <td>Total Item: <span id="totalItems">0</span></td>
+                                <td colspan="2">Total Amount: <span id="totalAmount">0.00</span></td>
+                            </tr>
+                            <tr style="font-weight: bold; background: #ededed">
+                                <td colspan="6" style="text-align: center;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div id="pagination" style="display: flex; gap: 5px;"></div>
+                                        <div id="pagination-info" style="font-size: 14px; color: #666;">1 - 10 of 28 items</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-section" style="text-align: center;">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-danger" onclick="window.location.href='@Url.Action("Index", "SalesOrder")'">Close</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="~/Scripts/app.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const addItemButton = document.querySelector(".btn.btn-add");
+            const tableBody = document.querySelector("table tbody");
+            const totalItemsElement = document.getElementById("totalItems");
+            const totalAmountElement = document.getElementById("totalAmount");
+            const form = document.querySelector("form");
+
+            form.addEventListener("submit", function () {
+                const priceInputs = form.querySelectorAll("input[name$='.PRICE']");
+                priceInputs.forEach(input => {
+                    input.value = parseFloat(input.value) || 0;
+                });
+            });
+
+            function addNewRow() {
+                const rowCount = tableBody.rows.length;
+                const newRow = document.createElement("tr");
+
+                newRow.innerHTML = `
+                <td>${rowCount + 1}</td>
+                <td style="text-align: center;">
+                    <a href="#" class="btn-save"><i class="fas fa-save" style="color: #333333; font-size: 24px;"></i></a>
+                </td>
+                <td>
+                    <input type="text" name="Items[${rowCount}].ITEM_NAME" placeholder="Enter item name" required>
+                </td>
+                <td>
+                    <input type="number" name="Items[${rowCount}].QUANTITY" min="1" placeholder="Enter quantity" required>
+                </td>
+                <td>
+                    <input type="number" name="Items[${rowCount}].PRICE" step="0.01" placeholder="Enter price" required>
+                </td>
+                <td class="total-cell">0.00</td>
+            `;
+
+                tableBody.appendChild(newRow);
+                addInputListeners(newRow);
+                addSaveListener(newRow);
+            }
+
+            function addSaveListener(row) {
+                const saveButton = row.querySelector(".btn-save");
+                saveButton.addEventListener("click", function (e) {
+                    e.preventDefault();
+
+                    const itemNameInput = row.querySelector("input[name$='.ITEM_NAME']");
+                    const qtyInput = row.querySelector("input[name$='.QUANTITY']");
+                    const priceInput = row.querySelector("input[name$='.PRICE']");
+                    const totalCell = row.querySelector(".total-cell");
+
+                    if (!itemNameInput.value.trim()) {
+                        alert("Item Name is required.");
+                        itemNameInput.focus();
+                        return;
+                    }
+                    if (!qtyInput.value || parseFloat(qtyInput.value) <= 0) {
+                        alert("Quantity is required and must be greater than 0.");
+                        qtyInput.focus();
+                        return;
+                    }
+                    if (!priceInput.value || parseFloat(priceInput.value) <= 0) {
+                        alert("Price is required and must be greater than 0.");
+                        priceInput.focus();
+                        return;
+                    }
+
+                    const qty = parseFloat(qtyInput.value);
+                    const price = parseFloat(priceInput.value);
+                    const total = qty * price;
+
+                    totalCell.textContent = total.toFixed(2);
+
+                    addNewRow();
+                    updateSummary();
+                });
+            }
+
+            function addInputListeners(row) {
+                const qtyInput = row.querySelector("input[name$='.QUANTITY']");
+                const priceInput = row.querySelector("input[name$='.PRICE']");
+                const totalCell = row.querySelector(".total-cell");
+
+                [qtyInput, priceInput].forEach(input => {
+                    input.addEventListener("input", function () {
+                        const qty = parseFloat(qtyInput.value) || 0;
+                        const price = parseFloat(priceInput.value) || 0;
+                        const total = qty * price;
+
+                        totalCell.textContent = total.toFixed(2);
+                        updateSummary();
+                    });
+                });
+            }
+
+            function updateSummary() {
+                const rows = tableBody.querySelectorAll("tr");
+                let totalItems = 0;
+                let totalAmount = 0;
+
+                rows.forEach(row => {
+                    const qty = parseFloat(row.querySelector("input[name$='.QUANTITY']")?.value) || 0;
+                    const total = parseFloat(row.querySelector(".total-cell")?.textContent) || 0;
+
+                    totalItems += qty;
+                    totalAmount += total;
+                });
+
+                totalItemsElement.textContent = totalItems;
+                totalAmountElement.textContent = totalAmount.toFixed(2);
+            }
+
+            addItemButton.addEventListener("click", function () {
+                addNewRow();
+            });
+        });
+
+    </script>
+</body>
+</html>
